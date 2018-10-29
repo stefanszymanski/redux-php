@@ -1,0 +1,218 @@
+<?php
+declare(strict_types=1);
+
+namespace Ctefan\Redux\Store;
+
+use Ctefan\Redux\Action\Action;
+use Ctefan\Redux\Action\ActionInterface;
+use Ctefan\Redux\Dispatcher\DefaultDispatcher;
+use Ctefan\Redux\Exception\IsDispatchingException;
+use Evenement\EventEmitter;
+use Evenement\EventEmitterInterface;
+
+class Store implements StoreInterface
+{
+    protected const EVENT_CHANGE = 'change';
+
+    protected const ACTION_TYPE_INIT = '__initialize';
+
+    /**
+     * @var mixed
+     */
+    protected $state;
+
+    /**
+     * @var callable
+     */
+    protected $reducer;
+
+    /**
+     * @var callable
+     */
+    protected $dispatcher;
+
+    /**
+     * @var EventEmitterInterface
+     */
+    protected $emitter;
+
+    /**
+     * @var bool
+     */
+    protected $isDispatching;
+
+    /**
+     * Store constructor.
+     *
+     * @param callable $reducer
+     * @param mixed $initialState
+     * @param callable|null $dispatcher
+     */
+    public function __construct(callable $reducer, $initialState)
+    {
+        $this->reducer = $reducer;
+        $this->state = $initialState;
+        $this->emitter = new EventEmitter();
+
+        $this->dispatcher = (function(ActionInterface $action): ActionInterface {
+            return $this->_dispatch($action);
+        })->bindTo($this);
+
+        $this->initialize();
+    }
+
+    static public function create(callable $reducer, $initialState, callable $enhancer = null): self
+    {
+        if (null !== $enhancer) {
+            $storeFactoryFunction = call_user_func([self::class, 'create']);
+            return call_user_func($storeFactoryFunction, $reducer, $initialState);
+        }
+
+        return new self($reducer, $initialState);
+    }
+
+    public function dispatch(ActionInterface $action): ActionInterface
+    {
+        return call_user_func($this->dispatcher, $action);
+    }
+
+
+    /**
+     * Get the current state.
+     *
+     * @return mixed
+     */
+    public function getState()
+    {
+        return $this->state;
+    }
+
+    /**
+     * Add a subscriber callback.
+     *
+     * @param callable $callback
+     * @return callable
+     * @throws IsDispatchingException
+     */
+    public function subscribe(callable $callback): callable
+    {
+        if (true === $this->isDispatching) {
+            throw new IsDispatchingException();
+        }
+
+        $this->emitter->on(self::EVENT_CHANGE, $callback);
+        $isSubscribed = true;
+
+        // Return an unsubscribe callback.
+        return (function() use (&$isSubscribed, $callback) {
+            if (false === $isSubscribed) {
+                return false;
+            }
+            $this->emitter->removeListener(self::EVENT_CHANGE, $callback);
+            $isSubscribed = false;
+            return true;
+        })->bindTo($this);
+    }
+
+    /**
+     * Set the reducer to use when dispatching.
+     *
+     * @param callable $reducer
+     * @throws IsDispatchingException
+     */
+    public function setReducer(callable $reducer): void
+    {
+        if (true === $this->isDispatching) {
+            throw new IsDispatchingException();
+        }
+
+        $this->reducer = $reducer;
+        $this->initialize();
+    }
+
+    public function setDispatcher(callable $dispatcher): void
+    {
+        $this->dispatcher = $dispatcher;
+    }
+
+     /**
+     * Dispatch the given action.
+     *
+     * @param ActionInterface $action
+     * @return ActionInterface
+     * @throws IsDispatchingException
+     */
+    public function _dispatch(ActionInterface $action): ActionInterface
+    {
+        if (true === $this->isDispatching) {
+            throw new IsDispatchingException();
+        }
+
+        try {
+            $this->isDispatching = true;
+            $startState = $this->getState();
+            $endState = $this->reduce($startState, $action);
+        } finally {
+            $this->isDispatching = false;
+        }
+
+        if (false === $this->statesAreEqual($startState, $endState)) {
+            $this->setState($endState);
+            $this->emitChange();
+        }
+
+        return $action;
+    }
+
+    /**
+     * Set the state.
+     *
+     * @param $state
+     */
+    protected function setState($state): void
+    {
+        $this->state = $state;
+    }
+
+    /**
+     * Test whether the given states are equal.
+     *
+     * @param $a
+     * @param $b
+     * @return bool
+     */
+    protected function statesAreEqual($a, $b): bool
+    {
+        return $a == $b;
+    }
+
+    /**
+     * Call the reducer.
+     *
+     * @param $state
+     * @param ActionInterface $action
+     * @return mixed
+     */
+    protected function reduce($state, ActionInterface $action)
+    {
+        return call_user_func($this->reducer, $state, $action);
+    }
+
+    /**
+     * Emit a change event.
+     */
+    protected function emitChange(): void
+    {
+        $this->emitter->emit(self::EVENT_CHANGE, [$this]);
+    }
+
+    /**
+     * Dispatch an initializing action.
+     *
+     * @throws IsDispatchingException
+     */
+    protected function initialize(): void
+    {
+        $this->dispatch(new Action(self::ACTION_TYPE_INIT));
+    }
+}
