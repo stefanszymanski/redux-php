@@ -1,0 +1,27 @@
+{
+  "name": "ctefan/redux",
+  "description": "A PHP port of Redux",
+  "keywords": [
+    "redux",
+    "flux"
+  ],
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Stefan Szymanski",
+      "email": "ctefan.szymanski@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^7.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "Ctefan\\Redux\\": "src/"
+    }
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^7"
+  }
+}
