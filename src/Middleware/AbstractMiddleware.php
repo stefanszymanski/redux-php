@@ -7,23 +7,37 @@ use Ctefan\Redux\Action\ActionInterface;
 
 abstract class AbstractMiddleware implements MiddlewareInterface
 {
-    private $getState;
+    /**
+     * @var callable
+     */
+    private $getStateFunction;
 
-    public function __invoke(callable $getState): callable
+    /**
+     * @var callable
+     */
+    private $dispatchFunction;
+
+    public function __invoke(callable $getState, callable $dispatch): callable
     {
-        $this->getState = $getState;
+        $this->getStateFunction = $getState;
+        $this->dispatchFunction = $dispatch;
 
         return function(callable $next) {
             return function(ActionInterface $action) use ($next) {
-                return $this->dispatch($action, $next);
+                return $this->handleAction($action, $next);
             };
         };
     }
 
     protected function getState()
     {
-        return call_user_func($this->getState);
+        return call_user_func($this->getStateFunction);
     }
 
-    abstract protected function dispatch(ActionInterface $action, callable $next): ActionInterface;
+    protected function dispatch(ActionInterface $action): ActionInterface
+    {
+        return call_user_func($this->dispatchFunction, $action);
+    }
+
+    abstract protected function handleAction(ActionInterface $action, callable $next): ActionInterface;
 }

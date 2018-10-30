@@ -35,7 +35,7 @@ class ComposedReducer
     public function __invoke(array $state, ActionInterface $action): array
     {
         foreach ($this->getReducers() as $reducer) {
-            $state = call_user_func($reducer, $state, $action);
+            $state = $reducer($state, $action);
         }
         return $state;
     }

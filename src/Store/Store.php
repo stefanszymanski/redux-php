@@ -46,7 +46,6 @@ class Store implements StoreInterface
      *
      * @param callable $reducer
      * @param mixed $initialState
-     * @param callable|null $dispatcher
      */
     public function __construct(callable $reducer, $initialState)
     {
@@ -54,28 +53,15 @@ class Store implements StoreInterface
         $this->state = $initialState;
         $this->emitter = new EventEmitter();
 
-        $this->dispatcher = (function(ActionInterface $action): ActionInterface {
-            return $this->_dispatch($action);
-        })->bindTo($this);
+        $this->dispatcher = [$this, '_dispatch'];
 
         $this->initialize();
     }
 
-    static public function create(callable $reducer, $initialState, callable $enhancer = null): self
-    {
-        if (null !== $enhancer) {
-            $storeFactoryFunction = call_user_func([self::class, 'create']);
-            return call_user_func($storeFactoryFunction, $reducer, $initialState);
-        }
-
-        return new self($reducer, $initialState);
-    }
-
     public function dispatch(ActionInterface $action): ActionInterface
     {
-        return call_user_func($this->dispatcher, $action);
+        return $this->dispatcher($action);
     }
-
 
     /**
      * Get the current state.
@@ -195,7 +181,7 @@ class Store implements StoreInterface
      */
     protected function reduce($state, ActionInterface $action)
     {
-        return call_user_func($this->reducer, $state, $action);
+        return $this->reducer($state, $action);
     }
 
     /**
