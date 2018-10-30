@@ -9,11 +9,9 @@ interface StoreInterface
 {
     public function dispatch(ActionInterface $action): ActionInterface;
 
-    public function getState();
+    public function getState(): array;
 
     public function subscribe(callable $callback): callable;
 
     public function setReducer(callable $reducer): void;
-
-    public function setDispatcher(callable $dispatcher): void;
 }

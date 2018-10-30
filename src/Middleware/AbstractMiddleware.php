@@ -17,6 +17,11 @@ abstract class AbstractMiddleware implements MiddlewareInterface
      */
     private $dispatchFunction;
 
+    /**
+     * @param callable $getState
+     * @param callable $dispatch
+     * @return callable
+     */
     public function __invoke(callable $getState, callable $dispatch): callable
     {
         $this->getStateFunction = $getState;
@@ -29,15 +34,27 @@ abstract class AbstractMiddleware implements MiddlewareInterface
         };
     }
 
+    /**
+     * @return mixed
+     */
     protected function getState()
     {
         return call_user_func($this->getStateFunction);
     }
 
+    /**
+     * @param ActionInterface $action
+     * @return ActionInterface
+     */
     protected function dispatch(ActionInterface $action): ActionInterface
     {
         return call_user_func($this->dispatchFunction, $action);
     }
 
+    /**
+     * @param ActionInterface $action
+     * @param callable $next
+     * @return ActionInterface
+     */
     abstract protected function handleAction(ActionInterface $action, callable $next): ActionInterface;
 }

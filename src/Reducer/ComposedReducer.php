@@ -28,11 +28,11 @@ class ComposedReducer
     }
 
     /**
-     * @param array $state
+     * @param mixed $state
      * @param ActionInterface $action
-     * @return array
+     * @return mixed
      */
-    public function __invoke(array $state, ActionInterface $action): array
+    public function __invoke($state, ActionInterface $action)
     {
         foreach ($this->getReducers() as $reducer) {
             $state = $reducer($state, $action);

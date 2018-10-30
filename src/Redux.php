@@ -4,12 +4,13 @@ declare(strict_types=1);
 namespace Ctefan\Redux;
 
 use Ctefan\Redux\Action\ActionInterface;
+use Ctefan\Redux\Exception\IsSettingUpMiddlewareException;
+use Ctefan\Redux\Store\EnhanceableStoreInterface;
 use Ctefan\Redux\Store\Store;
-use Ctefan\Redux\Store\StoreInterface;
 
 class Redux
 {
-    static public function createStore(callable $reducer, $initialState, callable $enhancer = null): StoreInterface
+    static public function createStore(callable $reducer, array $initialState = [], callable $enhancer = null): EnhanceableStoreInterface
     {
         if (null !== $enhancer) {
             $createStore = [self::class, 'create'];
@@ -22,12 +23,12 @@ class Redux
     static public function applyMiddleware(callable ...$middlewares): callable
     {
         return function(callable $createStore) use ($middlewares): callable {
-            return function(callable $reducer, $initialState, callable $enhancer) use ($middlewares, $createStore): StoreInterface {
+            return function(callable $reducer, array $initialState = [], callable $enhancer = null) use ($middlewares, $createStore): EnhanceableStoreInterface {
                 $store = $createStore($reducer, $initialState, $enhancer);
 
                 $getStateFunction = [$store, 'getState'];
                 $dispatchFunction = function(ActionInterface $action) {
-                    throw new \Exception(
+                    throw new IsSettingUpMiddlewareException(
                         'Dispatching while constructing your middleware is not allowed. ' .
                         'Other middleware would not be applied to this dispatch.'
                     );
@@ -37,7 +38,7 @@ class Redux
                     return $middleware($getStateFunction, $dispatchFunction);
                 }, $middlewares);
 
-                $dispatchFunction = self::compose(...$chain)([$store, 'dispatch']);
+                $dispatchFunction = self::compose(...$chain)($store->getDispatcher());
 
                 $store->setDispatcher($dispatchFunction);
 

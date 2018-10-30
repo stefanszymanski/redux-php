@@ -5,19 +5,18 @@ namespace Ctefan\Redux\Store;
 
 use Ctefan\Redux\Action\Action;
 use Ctefan\Redux\Action\ActionInterface;
-use Ctefan\Redux\Dispatcher\DefaultDispatcher;
 use Ctefan\Redux\Exception\IsDispatchingException;
 use Evenement\EventEmitter;
 use Evenement\EventEmitterInterface;
 
-class Store implements StoreInterface
+class Store implements EnhanceableStoreInterface
 {
     protected const EVENT_CHANGE = 'change';
 
     protected const ACTION_TYPE_INIT = '__initialize';
 
     /**
-     * @var mixed
+     * @var array
      */
     protected $state;
 
@@ -45,22 +44,30 @@ class Store implements StoreInterface
      * Store constructor.
      *
      * @param callable $reducer
-     * @param mixed $initialState
+     * @param array $initialState
      */
-    public function __construct(callable $reducer, $initialState)
+    public function __construct(callable $reducer, array $initialState = [])
     {
         $this->reducer = $reducer;
         $this->state = $initialState;
         $this->emitter = new EventEmitter();
 
-        $this->dispatcher = [$this, '_dispatch'];
+        $this->dispatcher = (function(ActionInterface $action): ActionInterface {
+            return $this->_dispatch($action);
+        })->bindTo($this);
 
         $this->initialize();
     }
 
+    /**
+     * Dispatch the given action.
+     *
+     * @param ActionInterface $action
+     * @return ActionInterface
+     */
     public function dispatch(ActionInterface $action): ActionInterface
     {
-        return $this->dispatcher($action);
+        return ($this->dispatcher)($action);
     }
 
     /**
@@ -68,7 +75,7 @@ class Store implements StoreInterface
      *
      * @return mixed
      */
-    public function getState()
+    public function getState(): array
     {
         return $this->state;
     }
@@ -116,19 +123,34 @@ class Store implements StoreInterface
         $this->initialize();
     }
 
+    /**
+     * Get the dispatcher.
+     *
+     * @return callable
+     */
+    public function getDispatcher(): callable
+    {
+        return $this->dispatcher;
+    }
+
+    /**
+     * Set the dispatcher.
+     *
+     * @param callable $dispatcher
+     */
     public function setDispatcher(callable $dispatcher): void
     {
         $this->dispatcher = $dispatcher;
     }
 
      /**
-     * Dispatch the given action.
+     * The base dispatcher method.
      *
      * @param ActionInterface $action
      * @return ActionInterface
      * @throws IsDispatchingException
      */
-    public function _dispatch(ActionInterface $action): ActionInterface
+    protected function _dispatch(ActionInterface $action): ActionInterface
     {
         if (true === $this->isDispatching) {
             throw new IsDispatchingException();
@@ -181,7 +203,7 @@ class Store implements StoreInterface
      */
     protected function reduce($state, ActionInterface $action)
     {
-        return $this->reducer($state, $action);
+        return ($this->reducer)($state, $action);
     }
 
     /**
