@@ -2,6 +2,10 @@
 
 [![Build Status](https://travis-ci.com/Cmytxy/redux-php.svg?branch=master)](https://travis-ci.com/Cmytxy/redux-php)
 
+[![Build Status](https://scrutinizer-ci.com/g/Cmytxy/redux-php/badges/build.png?b=master)](https://scrutinizer-ci.com/g/Cmytxy/redux-php/build-status/master)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/Cmytxy/redux-php/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/Cmytxy/redux-php/?branch=master)
+[![Code Coverage](https://scrutinizer-ci.com/g/Cmytxy/redux-php/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/Cmytxy/redux-php/?branch=master)
+
 A PHP port of [Redux](https://github.com/reduxjs/redux/blob/master/src/applyMiddleware.js).
 Partly inspired by the ports of [RafaelFontes](https://github.com/RafaelFontes/php-mars)
 and [rikbruil](https://github.com/rikbruil/php-redux).
